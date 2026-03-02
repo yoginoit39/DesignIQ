@@ -37,32 +37,97 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#07070f' }}>
+
       {/* Header */}
-      <header className="flex items-center px-5 py-3 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-sm">
-            🏛️
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 20px',
+        height: 48,
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        flexShrink: 0,
+        gap: 12,
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{
+            width: 26,
+            height: 26,
+            borderRadius: 7,
+            background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 13,
+            boxShadow: '0 2px 12px rgba(99,102,241,0.4)',
+          }}>
+            ⬡
           </div>
-          <span className="font-bold text-slate-100 text-base tracking-tight">DesignIQ</span>
-          <span className="hidden sm:inline text-xs text-slate-600 border border-slate-700 rounded px-2 py-0.5 ml-1">
-            System Design Interview Prep
+          <span style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: '#eef0ff',
+            letterSpacing: '-0.03em',
+          }}>
+            DesignIQ
           </span>
         </div>
 
-        <div className="ml-auto flex items-center gap-3">
-          {design && (
-            <span className="text-xs text-slate-500">
-              {design.nodes.length} components · {design.edges.length} connections
-            </span>
+        {/* Divider */}
+        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+
+        {/* Subtitle */}
+        <span style={{ fontSize: 12, color: '#383c56', fontWeight: 500 }}>
+          System Design Interview Prep
+        </span>
+
+        {/* Right side */}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+          {design && !loading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.4s ease' }}>
+              <span style={{
+                fontSize: 11,
+                color: '#383c56',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 6,
+                padding: '2px 9px',
+              }}>
+                {design.nodes.length} nodes
+              </span>
+              <span style={{
+                fontSize: 11,
+                color: '#383c56',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 6,
+                padding: '2px 9px',
+              }}>
+                {design.edges.length} connections
+              </span>
+            </div>
           )}
           <a
             href="https://groq.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-slate-600 hover:text-slate-400 transition"
+            style={{
+              fontSize: 11,
+              color: '#383c56',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = '#7b80a0'}
+            onMouseLeave={e => e.currentTarget.style.color = '#383c56'}
           >
             Powered by Groq
+            <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+              <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </a>
         </div>
       </header>
@@ -72,14 +137,28 @@ export default function App() {
 
       {/* Error */}
       {error && (
-        <div className="mx-4 mt-2 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm flex-shrink-0">
-          ⚠️ {error}
+        <div style={{
+          margin: '0 16px',
+          padding: '10px 16px',
+          background: 'rgba(239,68,68,0.08)',
+          border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: 10,
+          color: '#fca5a5',
+          fontSize: 13,
+          flexShrink: 0,
+          animation: 'fadeUp 0.3s ease',
+        }}>
+          ⚠ {error}
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Main */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <DiagramPanel design={design} loading={loading} />
+
+        {/* Vertical divider */}
+        <div style={{ width: 1, background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />
+
         <ChatPanel design={design} />
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -15,28 +15,163 @@ import { getLayoutedElements } from '../utils/layout'
 
 const nodeTypes = { custom: CustomNode }
 
-const edgeDefaults = {
-  type: 'smoothstep',
-  animated: true,
-  markerEnd: { type: MarkerType.ArrowClosed, color: '#475569' },
-  style: { stroke: '#475569', strokeWidth: 1.5 },
-  labelStyle: { fill: '#64748b', fontSize: 10, fontWeight: 500 },
-  labelBgStyle: { fill: '#1e293b', fillOpacity: 0.95 },
-  labelBgPadding: [5, 3],
-  labelBgBorderRadius: 4,
+const LOADING_STEPS = [
+  'Analyzing your prompt',
+  'Planning the architecture',
+  'Selecting components',
+  'Optimizing the layout',
+]
+
+const NODE_COLORS = {
+  client: '#38bdf8', 'api-gateway': '#818cf8', 'load-balancer': '#fb923c',
+  service: '#a78bfa', database: '#34d399', cache: '#facc15',
+  queue: '#f472b6', cdn: '#22d3ee', storage: '#94a3b8', notification: '#f87171',
 }
 
-const NODE_COLOR_MAP = {
-  client: '#60a5fa',
-  'api-gateway': '#a78bfa',
-  'load-balancer': '#fb923c',
-  service: '#818cf8',
-  database: '#34d399',
-  cache: '#f87171',
-  queue: '#fbbf24',
-  cdn: '#22d3ee',
-  storage: '#94a3b8',
-  notification: '#f472b6',
+function LoadingState() {
+  const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setStep((s) => (s + 1) % LOADING_STEPS.length), 1100)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      gap: 28,
+    }}>
+      {/* Animated logo mark */}
+      <div style={{
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 26,
+        boxShadow: '0 0 40px rgba(99,102,241,0.35)',
+        animation: 'pulse-glow 2s ease-in-out infinite',
+      }}>
+        ⬡
+      </div>
+
+      {/* Steps */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 220 }}>
+        {LOADING_STEPS.map((s, i) => (
+          <div key={s} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            opacity: i <= step ? 1 : 0.25,
+            transition: 'opacity 0.4s ease',
+          }}>
+            <div style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: i === step
+                ? 'linear-gradient(135deg, #6366f1, #a855f7)'
+                : i < step ? '#34d399' : 'rgba(255,255,255,0.15)',
+              flexShrink: 0,
+              animation: i === step ? 'pulse-dot 1s ease-in-out infinite' : 'none',
+              transition: 'background 0.3s',
+            }} />
+            <span style={{
+              fontSize: 13,
+              color: i === step ? '#a5b4fc' : i < step ? '#34d399' : '#383c56',
+              fontWeight: i === step ? 500 : 400,
+              transition: 'color 0.3s',
+            }}>
+              {i < step ? '✓ ' : ''}{s}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes pulse-glow {
+          0%, 100% { box-shadow: 0 0 30px rgba(99,102,241,0.3); }
+          50% { box-shadow: 0 0 50px rgba(99,102,241,0.55); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+      gap: 16,
+      userSelect: 'none',
+    }}>
+      {/* Mini diagram preview */}
+      <div style={{
+        position: 'relative',
+        width: 280,
+        height: 130,
+        opacity: 0.25,
+      }}>
+        {[
+          { x: 0,   y: 45, w: 72, label: 'Client', color: '#38bdf8' },
+          { x: 104, y: 20, w: 72, label: 'API GW',  color: '#818cf8' },
+          { x: 104, y: 70, w: 72, label: 'Cache',   color: '#facc15' },
+          { x: 208, y: 45, w: 72, label: 'Service', color: '#a78bfa' },
+        ].map((n) => (
+          <div key={n.label} style={{
+            position: 'absolute',
+            left: n.x,
+            top: n.y,
+            width: n.w,
+            height: 32,
+            background: 'rgba(255,255,255,0.04)',
+            border: `1px solid ${n.color}44`,
+            borderRadius: 7,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 10,
+            color: n.color,
+            fontWeight: 600,
+          }}>
+            {n.label}
+          </div>
+        ))}
+        {/* Connector lines */}
+        <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+          <line x1="72" y1="61" x2="104" y2="36" stroke="rgba(255,255,255,0.15)" strokeWidth="1" markerEnd="url(#arr)" />
+          <line x1="72" y1="61" x2="104" y2="86" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+          <line x1="176" y1="36" x2="208" y2="61" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+          <line x1="176" y1="86" x2="208" y2="61" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        </svg>
+      </div>
+
+      <div style={{ textAlign: 'center' }}>
+        <h2 style={{
+          fontSize: 18,
+          fontWeight: 700,
+          color: '#eef0ff',
+          letterSpacing: '-0.03em',
+          marginBottom: 6,
+        }}>
+          Your diagram will appear here
+        </h2>
+        <p style={{ fontSize: 13, color: '#383c56', maxWidth: 300, lineHeight: 1.6 }}>
+          Type a system design prompt above and click Generate to visualize the architecture.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 function FlowCanvas({ design, loading }) {
@@ -50,97 +185,94 @@ function FlowCanvas({ design, loading }) {
     const rawNodes = design.nodes.map((n) => ({
       id: n.id,
       type: 'custom',
-      data: {
-        label: n.label,
-        description: n.description,
-        componentType: n.type,
-      },
+      data: { label: n.label, description: n.description, componentType: n.type },
       position: { x: 0, y: 0 },
     }))
 
     const rawEdges = design.edges.map((e) => ({
-      ...edgeDefaults,
       id: e.id,
       source: e.source,
       target: e.target,
       label: e.label || undefined,
+      type: 'smoothstep',
+      animated: true,
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.2)' },
+      style: { stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1.5 },
+      labelStyle: { fill: '#4a5070', fontSize: 10 },
+      labelBgStyle: { fill: '#0c0c1d', fillOpacity: 1 },
+      labelBgPadding: [5, 3],
+      labelBgBorderRadius: 4,
     }))
 
-    const { nodes: lNodes, edges: lEdges } = getLayoutedElements(rawNodes, rawEdges)
-    setNodes(lNodes)
-    setEdges(lEdges)
+    const { nodes: ln, edges: le } = getLayoutedElements(rawNodes, rawEdges)
+    setNodes(ln)
+    setEdges(le)
 
-    setTimeout(() => fitView({ padding: 0.15, duration: 600 }), 80)
+    setTimeout(() => fitView({ padding: 0.18, duration: 600 }), 80)
   }, [design])
 
-  if (!design && !loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-8">
-        <div className="text-6xl mb-5">🏗️</div>
-        <h2 className="text-xl font-semibold text-slate-200 mb-2">Ready to Design</h2>
-        <p className="text-slate-500 text-sm max-w-sm leading-relaxed">
-          Type a system design prompt above and hit Generate. Your interactive architecture diagram will appear here.
-        </p>
-        <div className="mt-6 grid grid-cols-2 gap-2 max-w-xs w-full">
-          {['Caching layers', 'Message queues', 'Load balancers', 'Microservices'].map((t) => (
-            <div key={t} className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-xs text-slate-500 text-center">
-              {t}
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <svg className="animate-spin w-10 h-10 text-indigo-500" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-        </svg>
-        <p className="text-slate-400 text-sm animate-pulse">Designing your architecture...</p>
-      </div>
-    )
-  }
+  if (!design && !loading) return <EmptyState />
+  if (loading) return <LoadingState />
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      nodeTypes={nodeTypes}
-      fitView
-      fitViewOptions={{ padding: 0.15 }}
-      minZoom={0.25}
-      maxZoom={1.8}
-      attributionPosition="bottom-left"
-    >
-      <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#1e293b" />
-      <Controls showInteractive={false} />
-      <MiniMap
-        nodeColor={(n) => NODE_COLOR_MAP[n.data?.componentType] || '#818cf8'}
-        maskColor="rgba(15,23,42,0.75)"
-        style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-      />
-    </ReactFlow>
+    <div style={{ width: '100%', height: '100%', animation: 'fadeIn 0.5s ease' }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.18 }}
+        minZoom={0.2}
+        maxZoom={2}
+        attributionPosition="bottom-left"
+      >
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="rgba(255,255,255,0.04)" />
+        <Controls showInteractive={false} />
+        <MiniMap
+          nodeColor={(n) => NODE_COLORS[n.data?.componentType] || '#818cf8'}
+          maskColor="rgba(7,7,15,0.8)"
+          style={{ background: '#0c0c1d', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}
+        />
+      </ReactFlow>
+    </div>
   )
 }
 
 export default function DiagramPanel({ design, loading }) {
   return (
-    <div className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
+    <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Design title overlay */}
       {design && !loading && (
-        <div className="absolute top-3 left-3 z-10 pointer-events-none max-w-sm">
-          <div className="bg-slate-900/85 backdrop-blur border border-slate-700/50 rounded-xl px-4 py-3 shadow-xl">
-            <h2 className="text-sm font-semibold text-slate-100 mb-1">{design.title}</h2>
-            <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{design.description}</p>
+        <div style={{
+          position: 'absolute',
+          top: 14,
+          left: 14,
+          zIndex: 10,
+          pointerEvents: 'none',
+          maxWidth: 380,
+          animation: 'fadeUp 0.4s ease',
+        }}>
+          <div style={{
+            background: 'rgba(12,12,29,0.88)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: '10px 14px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#eef0ff', letterSpacing: '-0.01em', marginBottom: 3 }}>
+              {design.title}
+            </div>
+            <div style={{ fontSize: 11.5, color: '#4a5070', lineHeight: 1.55 }}>
+              {design.description}
+            </div>
           </div>
         </div>
       )}
 
-      <div style={{ width: '100%', height: '100%', flex: 1 }}>
+      <div style={{ flex: 1, minHeight: 0 }}>
         <ReactFlowProvider>
           <FlowCanvas design={design} loading={loading} />
         </ReactFlowProvider>
