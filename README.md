@@ -1,4 +1,4 @@
-# DesignIQ — System Design Interview Prep
+# DesignIQ - System Design Interview Prep
 
 An AI-powered tool that generates interactive system architecture diagrams from plain English prompts, with a streaming AI coach to help you understand and discuss the design.
 
