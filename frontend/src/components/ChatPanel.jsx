@@ -54,10 +54,12 @@ function Message({ msg, isLast, streaming }) {
   return (
     <div style={{
       display: 'flex',
-      justifyContent: isUser ? 'flex-end' : 'flex-start',
-      gap: 8,
+      flexDirection: 'column',
+      alignItems: isUser ? 'flex-end' : 'flex-start',
+      gap: 6,
       animation: 'fadeUp 0.25s ease',
     }}>
+      <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', gap: 8, width: '100%' }}>
       {!isUser && <Avatar role="assistant" />}
       <div style={{
         maxWidth: '83%',
@@ -100,11 +102,46 @@ function Message({ msg, isLast, streaming }) {
           </div>
         )}
       </div>
+      </div>
+      {msg.diagramUpdated && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          marginLeft: 34,
+          padding: '3px 10px',
+          background: 'rgba(52,211,153,0.08)',
+          border: '1px solid rgba(52,211,153,0.2)',
+          borderRadius: 20,
+          fontSize: 11,
+          color: '#34d399',
+          animation: 'fadeUp 0.3s ease',
+        }}>
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6.5L4.5 9L10 3" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Diagram updated
+        </div>
+      )}
     </div>
   )
 }
 
-export default function ChatPanel({ design }) {
+function wantsDiagramUpdate(message) {
+  const lower = message.toLowerCase()
+  return (
+    lower.includes('draw') ||
+    lower.includes('diagram') ||
+    lower.includes('update the design') ||
+    lower.includes('show me the design') ||
+    lower.includes('redesign') ||
+    lower.includes('add to the diagram') ||
+    lower.includes('modify the diagram') ||
+    lower.includes('change the diagram')
+  )
+}
+
+export default function ChatPanel({ design, onDiagramUpdate }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -132,8 +169,11 @@ export default function ChatPanel({ design }) {
     setMessages((prev) => [...prev, { role: 'user', content: msg }])
     setStreaming(true)
 
+    const updateDiagram = wantsDiagramUpdate(msg)
+
     try {
-      const res = await fetch(`${API_URL}/chat`, {
+      // Fire diagram refinement and chat in parallel when diagram update is requested
+      const chatPromise = fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,13 +183,22 @@ export default function ChatPanel({ design }) {
         }),
       })
 
+      const refinePromise = updateDiagram
+        ? fetch(`${API_URL}/refine-design`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_design: design, modification: msg }),
+          })
+        : null
+
+      const res = await chatPromise
       if (!res.ok) throw new Error('Failed')
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let aiText = ''
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: '' }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: '', diagramUpdated: false }])
 
       while (true) {
         const { done, value } = await reader.read()
@@ -157,9 +206,27 @@ export default function ChatPanel({ design }) {
         aiText += decoder.decode(value, { stream: true })
         setMessages((prev) => {
           const updated = [...prev]
-          updated[updated.length - 1] = { role: 'assistant', content: aiText }
+          updated[updated.length - 1] = { role: 'assistant', content: aiText, diagramUpdated: false }
           return updated
         })
+      }
+
+      // Apply diagram update after chat finishes
+      if (refinePromise) {
+        try {
+          const refineRes = await refinePromise
+          if (refineRes.ok) {
+            const updatedDesign = await refineRes.json()
+            onDiagramUpdate(updatedDesign)
+            setMessages((prev) => {
+              const updated = [...prev]
+              updated[updated.length - 1] = { ...updated[updated.length - 1], diagramUpdated: true }
+              return updated
+            })
+          }
+        } catch {
+          // Diagram update failed silently — chat response still shows
+        }
       }
     } catch {
       setMessages((prev) => [

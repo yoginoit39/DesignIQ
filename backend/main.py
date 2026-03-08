@@ -56,6 +56,41 @@ Rules:
 - Order nodes logically: client → gateway → services → data stores
 """
 
+REFINE_SYSTEM_PROMPT = """You are a world-class system design expert. You are given an existing system design JSON and a modification request. Update the design to incorporate the requested changes.
+
+Return ONLY a valid JSON object with the exact same structure. No markdown, no code blocks, no explanation — just raw JSON.
+
+Use this exact structure:
+{
+  "title": "descriptive title of the design",
+  "description": "2-3 sentence overview explaining the key design decisions and approach",
+  "nodes": [
+    {
+      "id": "unique-kebab-case-id",
+      "type": "one of: client, api-gateway, load-balancer, service, database, cache, queue, cdn, storage, notification",
+      "label": "Component Name",
+      "description": "What this component does in one clear sentence"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "source-node-id",
+      "target": "target-node-id",
+      "label": "protocol or what flows here"
+    }
+  ]
+}
+
+Rules:
+- Keep all existing components that are still relevant
+- Add new components required by the modification request
+- Update titles, descriptions, and labels to reflect the changes
+- Ensure ALL edge source/target IDs exactly match actual node IDs
+- Use the same node type vocabulary: client, api-gateway, load-balancer, service, database, cache, queue, cdn, storage, notification
+- Aim for 7-14 nodes for a comprehensive but readable diagram
+"""
+
 CHAT_SYSTEM_PROMPT = """You are a senior staff engineer and system design interview coach at a top tech company. You are helping a candidate understand and learn from a system design that was just generated.
 
 Your goals:
@@ -83,6 +118,11 @@ class ChatRequest(BaseModel):
     history: list
 
 
+class RefineRequest(BaseModel):
+    current_design: dict
+    modification: str
+
+
 @app.post("/generate-design")
 async def generate_design(request: DesignRequest):
     try:
@@ -99,6 +139,34 @@ async def generate_design(request: DesignRequest):
         raw = completion.choices[0].message.content.strip()
 
         # Strip markdown code blocks if AI wraps in them
+        if raw.startswith("```"):
+            lines = raw.split("\n")
+            raw = "\n".join(lines[1:-1])
+
+        design = json.loads(raw)
+        return design
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse design JSON: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/refine-design")
+async def refine_design(request: RefineRequest):
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": REFINE_SYSTEM_PROMPT},
+                {"role": "user", "content": f"Current design:\n{json.dumps(request.current_design)}\n\nModification request: {request.modification}"},
+            ],
+            temperature=0.3,
+            max_tokens=2500,
+        )
+
+        raw = completion.choices[0].message.content.strip()
+
         if raw.startswith("```"):
             lines = raw.split("\n")
             raw = "\n".join(lines[1:-1])

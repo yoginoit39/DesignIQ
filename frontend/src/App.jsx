@@ -159,7 +159,7 @@ export default function App() {
         {/* Vertical divider */}
         <div style={{ width: 1, background: 'rgba(255,255,255,0.05)', flexShrink: 0 }} />
 
-        <ChatPanel design={design} />
+        <ChatPanel design={design} onDiagramUpdate={setDesign} />
       </div>
     </div>
   )
