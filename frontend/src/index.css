@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -9,22 +11,25 @@
 }
 
 :root {
-  --bg: #07070f;
-  --surface: #0c0c1d;
-  --surface-2: #111128;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-2: rgba(255, 255, 255, 0.1);
-  --text-1: #eef0ff;
-  --text-2: #7b80a0;
-  --text-3: #383c56;
-  --indigo: #6366f1;
-  --violet: #a855f7;
-  --glow: rgba(99, 102, 241, 0.18);
+  --bg:        #0a0a0f;
+  --surface:   #0f0f1a;
+  --surface-2: #161625;
+  --surface-3: #1e1e32;
+  --border:    rgba(255, 255, 255, 0.05);
+  --border-2:  rgba(255, 255, 255, 0.10);
+  --cyan:      #00d4ff;
+  --cyan-dim:  rgba(0, 212, 255, 0.13);
+  --amber:     #f59e0b;
+  --red:       #ef4444;
+  --green:     #22c55e;
+  --text-1:    #f0f4ff;
+  --text-2:    #8892b0;
+  --text-3:    #3d4466;
 }
 
 html, body, #root {
   height: 100%;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'DM Sans', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text-1);
   overflow: hidden;
@@ -41,6 +46,11 @@ html, body, #root {
   to   { opacity: 1; }
 }
 
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 0.3; transform: scale(0.85); }
   50%       { opacity: 1;   transform: scale(1.1); }
@@ -49,6 +59,11 @@ html, body, #root {
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40%           { transform: translateY(-4px); opacity: 1; }
 }
 
 @keyframes gradient-shift {
@@ -60,6 +75,15 @@ html, body, #root {
 @keyframes shimmer {
   0%   { background-position: -200% center; }
   100% { background-position: 200% center; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes placeholder-fade {
+  0%, 100% { opacity: 0; transform: translateY(4px); }
+  15%, 85% { opacity: 1; transform: translateY(0); }
 }
 
 /* ---------- React Flow overrides ---------- */
@@ -101,7 +125,7 @@ html, body, #root {
 }
 
 .react-flow__edge-path {
-  stroke: rgba(255,255,255,0.12);
+  stroke: rgba(0, 212, 255, 0.2);
   stroke-width: 1.5;
 }
 
@@ -123,14 +147,14 @@ html, body, #root {
 .chat-md p:last-child { margin-bottom: 0; }
 .chat-md ul, .chat-md ol { padding-left: 16px; margin: 4px 0 8px; }
 .chat-md li { margin-bottom: 3px; line-height: 1.6; }
-.chat-md strong { color: #c7d0ff; font-weight: 600; }
+.chat-md strong { color: #c7eeff; font-weight: 600; }
 .chat-md code {
-  background: rgba(99,102,241,0.15);
-  color: #a5b4fc;
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 11.5px;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* ---------- Scrollbar ---------- */
@@ -144,33 +168,175 @@ html, body, #root {
 .fade-in { animation: fadeIn 0.4s ease forwards; }
 
 .gradient-text {
-  background: linear-gradient(135deg, #818cf8, #c084fc);
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.gradient-border-focus:focus-within::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 13px;
-  background: linear-gradient(135deg, var(--indigo), var(--violet));
-  z-index: -1;
-}
-
 .generate-btn {
-  background: linear-gradient(135deg, #5558e8, #9333ea);
+  background: linear-gradient(135deg, #0099cc, #00d4ff);
   background-size: 200% 200%;
   transition: all 0.25s;
 }
 
 .generate-btn:hover:not(:disabled) {
   background-position: right center;
-  box-shadow: 0 0 24px rgba(99,102,241,0.45);
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.4);
   transform: translateY(-1px);
 }
 
 .generate-btn:active:not(:disabled) {
   transform: translateY(0);
+}
+
+/* ---------- Drag handle ---------- */
+.drag-handle {
+  width: 8px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.drag-handle:hover {
+  background: rgba(0, 212, 255, 0.06);
+}
+
+.drag-handle-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.drag-handle-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: background 0.15s;
+}
+
+.drag-handle:hover .drag-handle-dot {
+  background: var(--cyan);
+}
+
+/* ---------- Node tooltip ---------- */
+.node-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  width: 220px;
+  z-index: 1000;
+  pointer-events: none;
+  animation: fadeUp 0.15s ease;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.1);
+}
+
+/* ---------- Node explanation pane ---------- */
+.explanation-pane {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: var(--surface);
+  border-top: 1px solid rgba(0, 212, 255, 0.15);
+  z-index: 10;
+  animation: slideUp 0.25s ease;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---------- Scroll pill ---------- */
+.scroll-pill {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 11px;
+  color: var(--cyan);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  animation: fadeUp 0.2s ease;
+  z-index: 5;
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.scroll-pill:hover {
+  background: rgba(0, 212, 255, 0.1);
+}
+
+/* ---------- Starter question cards ---------- */
+.starter-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 12px;
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.starter-card:hover {
+  background: var(--surface-3);
+  border-color: rgba(0, 212, 255, 0.25);
+  color: var(--cyan);
+}
+
+/* ---------- Typing indicator ---------- */
+.typing-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cyan);
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* ---------- Concept chips (inline in chat) ---------- */
+.concept-chip {
+  display: inline;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11.5px;
+  color: #00d4ff;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  margin: 0 2px;
+  line-height: 1.6;
+  transition: background 0.15s;
+  vertical-align: baseline;
+}
+
+.concept-chip:hover {
+  background: rgba(0, 212, 255, 0.2);
 }

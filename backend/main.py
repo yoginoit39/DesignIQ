@@ -103,9 +103,44 @@ Your goals:
 Be encouraging, educational, and conversational. Keep answers focused — 3-5 paragraphs max.
 Use bullet points for lists. Use technical terms but explain them clearly.
 
+IMPORTANT: NEVER draw ASCII diagrams, text-based diagrams, box-and-arrow art, or any text representation of a diagram. If the user asks to "draw" or "update" or "modify" the diagram, the visual diagram on the left canvas is already being updated automatically — just acknowledge that and describe the changes conversationally in plain text.
+
+CONCEPT CHIPS: When you mention a system design concept that a candidate should study deeply (e.g., CAP theorem, cache-aside, sharding, eventual consistency, idempotency), wrap it in double brackets like [[CAP theorem]] or [[cache-aside pattern]]. Only wrap the first mention per concept per response. This renders as a clickable learning chip in the UI.
+
 Current system design being discussed:
 {diagram_context}
 """
+
+DRILL_SYSTEM_PROMPT = """You are a senior staff engineer at a top tech company conducting a live system design interview. The candidate has generated a design and you are drilling them on their choices.
+
+Rules:
+- Ask ONE specific, pointed question per turn about a concrete component in the design
+- Focus on: WHY they chose it, HOW they'd configure it, WHAT trade-offs they considered
+- If the answer is surface-level, push back directly: "Okay, but what eviction policy, and why? What happens on a cache miss under high load?"
+- If the answer shows genuine depth, acknowledge briefly then advance: "Good. Now let's talk about [next component] — ..."
+- Never give away the answer — only probe and guide
+- Be direct but encouraging — senior mentor, not a judge
+- For the first message (empty), pick the most architecturally interesting component and open with a tough question about it
+
+Current system design being drilled:
+{diagram_context}
+"""
+
+CONCEPT_SYSTEM_PROMPT = """You are a system design interview coach explaining a technical concept concisely.
+
+Explain the concept the user provides in exactly these 3 sections with these exact headers:
+
+## What it is
+Clear definition with one concrete example. 2-3 sentences max.
+
+## When to use it
+Trade-offs, alternatives, and decision signals. What tells you to reach for this? What are the downsides? 3-4 sentences.
+
+## How to talk about it in an interview
+What to say, what depth to show, what FAANG interviewers look for. Include one sample phrase a candidate could use. 3-4 sentences.
+
+{context_section}
+No fluff. Candidates are in interview prep mode."""
 
 
 class DesignRequest(BaseModel):
@@ -116,6 +151,17 @@ class ChatRequest(BaseModel):
     message: str
     diagram_context: str
     history: list
+
+
+class DrillRequest(BaseModel):
+    message: str
+    diagram_context: str
+    history: list
+
+
+class ConceptRequest(BaseModel):
+    concept: str
+    diagram_context: str = ""
 
 
 class RefineRequest(BaseModel):
@@ -199,6 +245,73 @@ async def chat(request: ChatRequest):
             messages=messages,
             temperature=0.7,
             max_tokens=1000,
+            stream=True,
+        )
+        for chunk in completion:
+            token = chunk.choices[0].delta.content
+            if token:
+                yield token
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/plain",
+        headers={"X-Accel-Buffering": "no"},
+    )
+
+
+@app.post("/drill")
+async def drill(request: DrillRequest):
+    system_prompt = DRILL_SYSTEM_PROMPT.format(
+        diagram_context=request.diagram_context
+    )
+
+    messages = [{"role": "system", "content": system_prompt}]
+
+    for msg in request.history:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+
+    if request.message:
+        messages.append({"role": "user", "content": request.message})
+
+    def stream():
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.6,
+            max_tokens=600,
+            stream=True,
+        )
+        for chunk in completion:
+            token = chunk.choices[0].delta.content
+            if token:
+                yield token
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/plain",
+        headers={"X-Accel-Buffering": "no"},
+    )
+
+
+@app.post("/concept")
+async def concept(request: ConceptRequest):
+    context_section = ""
+    if request.diagram_context.strip():
+        context_section = f"Context: Relate this concept to the candidate's current design where relevant: {request.diagram_context}"
+
+    system_prompt = CONCEPT_SYSTEM_PROMPT.format(
+        context_section=context_section,
+    )
+
+    def stream():
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Explain: {request.concept}"},
+            ],
+            temperature=0.4,
+            max_tokens=500,
             stream=True,
         )
         for chunk in completion:

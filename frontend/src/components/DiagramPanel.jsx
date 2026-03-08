@@ -28,6 +28,74 @@ const NODE_COLORS = {
   queue: '#f472b6', cdn: '#22d3ee', storage: '#94a3b8', notification: '#f87171',
 }
 
+function NodeExplanationPane({ node, onClose }) {
+  if (!node) return null
+
+  const NODE_INTERVIEW_TIPS = {
+    client:          'Discuss user-facing clients: web, mobile, desktop. Talk about latency sensitivity and client-side caching.',
+    'api-gateway':   'API Gateway centralizes auth, rate limiting, routing. Good point to discuss token validation and DDoS protection.',
+    'load-balancer': 'Explain round-robin vs least-connections. Discuss session affinity (sticky sessions) and health checks.',
+    service:         'Discuss horizontal scaling, statelessness, and service discovery. Great place to mention 12-factor app principles.',
+    database:        'Cover CAP theorem, ACID vs BASE, read replicas, and sharding strategies. Interviewers love schema discussion.',
+    cache:           'Explain cache-aside vs write-through vs write-back. Discuss eviction policies (LRU) and cache stampede.',
+    queue:           'Talk about async decoupling, fan-out patterns, at-least-once delivery, and idempotency requirements.',
+    cdn:             'Discuss cache invalidation, edge locations, and which assets to serve from CDN vs origin.',
+    storage:         'Blob vs object storage. Discuss S3 consistency model, lifecycle policies, and pre-signed URLs.',
+    notification:    'Cover push vs pull, WebSockets vs SSE vs long polling, and fan-out at scale.',
+  }
+
+  const tip = NODE_INTERVIEW_TIPS[node.data.componentType] || 'Discuss this component\'s role, scaling properties, and failure modes.'
+
+  return (
+    <div className="explanation-pane">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{
+            fontSize: 10,
+            fontFamily: "'JetBrains Mono', monospace",
+            color: '#00d4ff',
+            fontWeight: 600,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: 4,
+          }}>
+            Interview Tips — {node.data.componentType}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f4ff', marginBottom: 8 }}>
+            {node.data.label}
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 6,
+            color: '#8892b0',
+            cursor: 'pointer',
+            padding: '3px 8px',
+            fontSize: 12,
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          ✕
+        </button>
+      </div>
+      <div style={{ fontSize: 12.5, color: '#8892b0', lineHeight: 1.65, flex: 1, overflowY: 'auto' }}>
+        {tip}
+      </div>
+      <div style={{
+        fontSize: 11,
+        color: '#3d4466',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingTop: 8,
+      }}>
+        💡 Ask your AI Coach about this component for a deeper explanation
+      </div>
+    </div>
+  )
+}
+
 function LoadingState() {
   const [step, setStep] = useState(0)
 
@@ -50,12 +118,12 @@ function LoadingState() {
         width: 56,
         height: 56,
         borderRadius: 16,
-        background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+        background: 'linear-gradient(135deg, #0099cc, #00d4ff)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: 26,
-        boxShadow: '0 0 40px rgba(99,102,241,0.35)',
+        boxShadow: '0 0 40px rgba(0,212,255,0.35)',
         animation: 'pulse-glow 2s ease-in-out infinite',
       }}>
         ⬡
@@ -76,7 +144,7 @@ function LoadingState() {
               height: 7,
               borderRadius: '50%',
               background: i === step
-                ? 'linear-gradient(135deg, #6366f1, #a855f7)'
+                ? 'linear-gradient(135deg, #0099cc, #00d4ff)'
                 : i < step ? '#34d399' : 'rgba(255,255,255,0.15)',
               flexShrink: 0,
               animation: i === step ? 'pulse-dot 1s ease-in-out infinite' : 'none',
@@ -84,7 +152,7 @@ function LoadingState() {
             }} />
             <span style={{
               fontSize: 13,
-              color: i === step ? '#a5b4fc' : i < step ? '#34d399' : '#383c56',
+              color: i === step ? '#00d4ff' : i < step ? '#34d399' : '#3d4466',
               fontWeight: i === step ? 500 : 400,
               transition: 'color 0.3s',
             }}>
@@ -96,8 +164,8 @@ function LoadingState() {
 
       <style>{`
         @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 30px rgba(99,102,241,0.3); }
-          50% { box-shadow: 0 0 50px rgba(99,102,241,0.55); }
+          0%, 100% { box-shadow: 0 0 30px rgba(0,212,255,0.3); }
+          50% { box-shadow: 0 0 50px rgba(0,212,255,0.55); }
         }
       `}</style>
     </div>
@@ -160,13 +228,13 @@ function EmptyState() {
         <h2 style={{
           fontSize: 18,
           fontWeight: 700,
-          color: '#eef0ff',
+          color: '#f0f4ff',
           letterSpacing: '-0.03em',
           marginBottom: 6,
         }}>
           Your diagram will appear here
         </h2>
-        <p style={{ fontSize: 13, color: '#383c56', maxWidth: 300, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: '#3d4466', maxWidth: 300, lineHeight: 1.6 }}>
           Type a system design prompt above and click Generate to visualize the architecture.
         </p>
       </div>
@@ -174,7 +242,7 @@ function EmptyState() {
   )
 }
 
-function FlowCanvas({ design, loading }) {
+function FlowCanvas({ design, loading, onNodeClick, onPaneClick }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const { fitView } = useReactFlow()
@@ -196,10 +264,10 @@ function FlowCanvas({ design, loading }) {
       label: e.label || undefined,
       type: 'smoothstep',
       animated: true,
-      markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(255,255,255,0.2)' },
-      style: { stroke: 'rgba(255,255,255,0.12)', strokeWidth: 1.5 },
-      labelStyle: { fill: '#4a5070', fontSize: 10 },
-      labelBgStyle: { fill: '#0c0c1d', fillOpacity: 1 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'rgba(0,212,255,0.3)' },
+      style: { stroke: 'rgba(0,212,255,0.2)', strokeWidth: 1.5 },
+      labelStyle: { fill: '#3d4466', fontSize: 10 },
+      labelBgStyle: { fill: '#0f0f1a', fillOpacity: 1 },
       labelBgPadding: [5, 3],
       labelBgBorderRadius: 4,
     }))
@@ -227,20 +295,22 @@ function FlowCanvas({ design, loading }) {
         minZoom={0.2}
         maxZoom={2}
         attributionPosition="bottom-left"
+        onNodeClick={(_, node) => onNodeClick(node)}
+        onPaneClick={onPaneClick}
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="rgba(255,255,255,0.04)" />
         <Controls showInteractive={false} />
         <MiniMap
           nodeColor={(n) => NODE_COLORS[n.data?.componentType] || '#818cf8'}
-          maskColor="rgba(7,7,15,0.8)"
-          style={{ background: '#0c0c1d', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}
+          maskColor="rgba(10,10,15,0.8)"
+          style={{ background: '#0f0f1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}
         />
       </ReactFlow>
     </div>
   )
 }
 
-export default function DiagramPanel({ design, loading }) {
+export default function DiagramPanel({ design, loading, selectedNode, onNodeClick, onPaneClick }) {
   return (
     <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Design title overlay */}
@@ -255,17 +325,17 @@ export default function DiagramPanel({ design, loading }) {
           animation: 'fadeUp 0.4s ease',
         }}>
           <div style={{
-            background: 'rgba(12,12,29,0.88)',
+            background: 'rgba(15,15,26,0.88)',
             backdropFilter: 'blur(16px)',
             border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: 12,
             padding: '10px 14px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#eef0ff', letterSpacing: '-0.01em', marginBottom: 3 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: '#f0f4ff', letterSpacing: '-0.01em', marginBottom: 3 }}>
               {design.title}
             </div>
-            <div style={{ fontSize: 11.5, color: '#4a5070', lineHeight: 1.55 }}>
+            <div style={{ fontSize: 11.5, color: '#3d4466', lineHeight: 1.55 }}>
               {design.description}
             </div>
           </div>
@@ -274,9 +344,19 @@ export default function DiagramPanel({ design, loading }) {
 
       <div style={{ flex: 1, minHeight: 0 }}>
         <ReactFlowProvider>
-          <FlowCanvas design={design} loading={loading} />
+          <FlowCanvas
+            design={design}
+            loading={loading}
+            onNodeClick={onNodeClick || (() => {})}
+            onPaneClick={onPaneClick || (() => {})}
+          />
         </ReactFlowProvider>
       </div>
+
+      <NodeExplanationPane
+        node={selectedNode}
+        onClose={() => onNodeClick && onNodeClick(null)}
+      />
     </div>
   )
 }
