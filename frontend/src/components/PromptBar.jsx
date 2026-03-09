@@ -158,7 +158,7 @@ export default function PromptBar({ onGenerate, loading }) {
       </form>
 
       {/* Suggestion chips with difficulty badges */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="suggestions-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontSize: 11, color: '#3d4466', marginRight: 2, flexShrink: 0 }}>Try:</span>
         {SUGGESTIONS.map((s) => {
           const diff = DIFFICULTY_CONFIG[s.difficulty]

@@ -202,7 +202,7 @@ function renderWithConceptChips(content, onConceptClick) {
   })
 }
 
-export default function ChatPanel({ design, onDiagramUpdate, width = 340, getToken }) {
+export default function ChatPanel({ design, onDiagramUpdate, width = 340, getToken, isMobile = false, onClose }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -449,6 +449,20 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340, getTok
         gap: 8,
         flexShrink: 0,
       }}>
+        {/* Mobile drag indicator */}
+        {isMobile && (
+          <div style={{
+            position: 'absolute',
+            top: 6,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 36,
+            height: 4,
+            borderRadius: 2,
+            background: 'rgba(255,255,255,0.15)',
+          }} />
+        )}
+
         <div style={{
           width: 7,
           height: 7,
@@ -457,6 +471,7 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340, getTok
           boxShadow: design ? '0 0 6px rgba(34,197,94,0.6)' : 'none',
           transition: 'all 0.3s',
           flexShrink: 0,
+          marginTop: isMobile ? 8 : 0,
         }} />
 
         {/* Tab switcher */}
@@ -467,6 +482,7 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340, getTok
           borderRadius: 8,
           padding: 2,
           gap: 2,
+          marginTop: isMobile ? 8 : 0,
         }}>
           {[
             { id: 'chat', label: '💬 Chat' },
@@ -513,6 +529,7 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340, getTok
               fontWeight: 500,
               transition: 'all 0.15s',
               whiteSpace: 'nowrap',
+              marginTop: isMobile ? 8 : 0,
             }}
             onMouseEnter={e => { if (!drillMode) e.currentTarget.style.color = '#8892b0' }}
             onMouseLeave={e => { if (!drillMode) e.currentTarget.style.color = '#3d4466' }}
@@ -521,14 +538,39 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340, getTok
           </button>
         )}
 
-        <span style={{
-          marginLeft: 'auto',
-          fontSize: 10,
-          color: '#3d4466',
-          fontFamily: "'JetBrains Mono', monospace",
-        }}>
-          LLaMA 3.3 70B
-        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, marginTop: isMobile ? 8 : 0 }}>
+          {!isMobile && (
+            <span style={{
+              fontSize: 10,
+              color: '#3d4466',
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>
+              LLaMA 3.3 70B
+            </span>
+          )}
+
+          {/* Close button — mobile only */}
+          {isMobile && onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.05)',
+                color: '#8892b0',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 14,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Concepts tab */}

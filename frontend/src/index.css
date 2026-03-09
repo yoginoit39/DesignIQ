@@ -340,3 +340,35 @@ html, body, #root {
 .concept-chip:hover {
   background: rgba(0, 212, 255, 0.2);
 }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 767px) {
+  /* Suggestion chips: single scrollable row instead of wrapping */
+  .suggestions-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .suggestions-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Make touch targets larger */
+  .starter-card {
+    padding: 11px 14px;
+    font-size: 13px;
+  }
+
+  /* Scroll pill — keep above mobile keyboard */
+  .scroll-pill {
+    bottom: 90px;
+  }
+
+  /* Explanation pane — full width, taller on mobile */
+  .explanation-pane {
+    height: 240px;
+    padding: 14px 16px;
+  }
+}

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useAuth } from './AuthContext'
 import LoginPage from './LoginPage'
 import PromptBar from './components/PromptBar'
@@ -17,6 +17,18 @@ export default function App() {
   const [error, setError] = useState(null)
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH)
   const [selectedNode, setSelectedNode] = useState(null)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+  const [chatOpen, setChatOpen] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (!mobile) setChatOpen(false)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Resize logic
   const isDragging = useRef(false)
@@ -121,11 +133,11 @@ export default function App() {
       <header style={{
         display: 'flex',
         alignItems: 'center',
-        padding: '0 20px',
+        padding: isMobile ? '0 12px' : '0 20px',
         height: 48,
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
-        gap: 12,
+        gap: isMobile ? 8 : 12,
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -153,16 +165,18 @@ export default function App() {
           </span>
         </div>
 
-        {/* Divider */}
-        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
-
-        {/* Subtitle */}
-        <span style={{ fontSize: 12, color: '#3d4466', fontWeight: 500 }}>
-          System Design Interview Prep
-        </span>
+        {/* Divider + Subtitle — desktop only */}
+        {!isMobile && (
+          <>
+            <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+            <span style={{ fontSize: 12, color: '#3d4466', fontWeight: 500 }}>
+              System Design Interview Prep
+            </span>
+          </>
+        )}
 
         {/* Right side */}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16 }}>
           {design && !loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, animation: 'fadeIn 0.4s ease' }}>
               <span style={{
@@ -176,17 +190,19 @@ export default function App() {
               }}>
                 {design.nodes.length} nodes
               </span>
-              <span style={{
-                fontSize: 11,
-                color: '#8892b0',
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 6,
-                padding: '2px 9px',
-                fontFamily: "'JetBrains Mono', monospace",
-              }}>
-                {design.edges.length} connections
-              </span>
+              {!isMobile && (
+                <span style={{
+                  fontSize: 11,
+                  color: '#8892b0',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 6,
+                  padding: '2px 9px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}>
+                  {design.edges.length} connections
+                </span>
+              )}
             </div>
           )}
 
@@ -218,27 +234,30 @@ export default function App() {
             </button>
           </div>
 
-          <a
-            href="https://groq.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontSize: 11,
-              color: '#3d4466',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = '#8892b0'}
-            onMouseLeave={e => e.currentTarget.style.color = '#3d4466'}
-          >
-            Powered by Groq
-            <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
-              <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </a>
+          {/* Powered by Groq — desktop only */}
+          {!isMobile && (
+            <a
+              href="https://groq.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: 11,
+                color: '#3d4466',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#8892b0'}
+              onMouseLeave={e => e.currentTarget.style.color = '#3d4466'}
+            >
+              Powered by Groq
+              <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </a>
+          )}
         </div>
       </header>
 
@@ -263,7 +282,7 @@ export default function App() {
       )}
 
       {/* Main */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
         <DiagramPanel
           design={design}
           loading={loading}
@@ -272,26 +291,99 @@ export default function App() {
           onPaneClick={() => setSelectedNode(null)}
         />
 
-        {/* Drag handle */}
-        <div
-          className="drag-handle"
-          onMouseDown={handleMouseDown}
-          onDoubleClick={handleDragHandleDoubleClick}
-          title="Drag to resize · Double-click to reset"
-        >
-          <div className="drag-handle-dots">
-            <div className="drag-handle-dot" />
-            <div className="drag-handle-dot" />
-            <div className="drag-handle-dot" />
+        {/* Drag handle — desktop only */}
+        {!isMobile && (
+          <div
+            className="drag-handle"
+            onMouseDown={handleMouseDown}
+            onDoubleClick={handleDragHandleDoubleClick}
+            title="Drag to resize · Double-click to reset"
+          >
+            <div className="drag-handle-dots">
+              <div className="drag-handle-dot" />
+              <div className="drag-handle-dot" />
+              <div className="drag-handle-dot" />
+            </div>
           </div>
-        </div>
+        )}
 
-        <ChatPanel
-          design={design}
-          onDiagramUpdate={setDesign}
-          width={chatWidth}
-          getToken={getToken}
-        />
+        {/* Desktop: sidebar chat */}
+        {!isMobile && (
+          <ChatPanel
+            design={design}
+            onDiagramUpdate={setDesign}
+            width={chatWidth}
+            getToken={getToken}
+          />
+        )}
+
+        {/* Mobile: bottom sheet chat */}
+        {isMobile && chatOpen && (
+          <>
+            <div
+              onClick={() => setChatOpen(false)}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(0,0,0,0.55)',
+                zIndex: 49,
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '72vh',
+              zIndex: 50,
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '16px 16px 0 0',
+              overflow: 'hidden',
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.6)',
+            }}>
+              <ChatPanel
+                design={design}
+                onDiagramUpdate={setDesign}
+                width="100%"
+                getToken={getToken}
+                isMobile
+                onClose={() => setChatOpen(false)}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Mobile: floating chat toggle button */}
+        {isMobile && (
+          <button
+            onClick={() => setChatOpen(v => !v)}
+            style={{
+              position: 'absolute',
+              bottom: 20,
+              right: 20,
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              background: chatOpen
+                ? 'rgba(255,255,255,0.1)'
+                : 'linear-gradient(135deg, #0099cc, #00d4ff)',
+              border: chatOpen ? '1px solid rgba(255,255,255,0.15)' : 'none',
+              color: 'white',
+              fontSize: 22,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: chatOpen ? 'none' : '0 4px 20px rgba(0,212,255,0.45)',
+              zIndex: chatOpen ? 48 : 40,
+              transition: 'all 0.2s',
+            }}
+            aria-label={chatOpen ? 'Close chat' : 'Open AI Coach'}
+          >
+            {chatOpen ? '✕' : '💬'}
+          </button>
+        )}
       </div>
     </div>
   )
