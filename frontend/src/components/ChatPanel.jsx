@@ -202,7 +202,7 @@ function renderWithConceptChips(content, onConceptClick) {
   })
 }
 
-export default function ChatPanel({ design, onDiagramUpdate, width = 340 }) {
+export default function ChatPanel({ design, onDiagramUpdate, width = 340, getToken }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -271,9 +271,13 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340 }) {
 
     try {
       const isDrill = drillModeRef.current
+      const token = await getToken()
       const chatPromise = fetch(`${API_URL}/${isDrill ? 'drill' : 'chat'}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           message: msg,
           diagram_context: formatDiagramContext(design),
@@ -284,7 +288,10 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340 }) {
       const refinePromise = !isDrill && updateDiagram
         ? fetch(`${API_URL}/refine-design`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({ current_design: design, modification: msg }),
           })
         : null
@@ -358,9 +365,13 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340 }) {
     setStreaming(true)
 
     try {
+      const token = await getToken()
       const res = await fetch(`${API_URL}/drill`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           message: '',
           diagram_context: formatDiagramContext(design),
@@ -526,6 +537,7 @@ export default function ChatPanel({ design, onDiagramUpdate, width = 340 }) {
           design={design}
           openConcept={openConcept}
           onConceptHandled={() => setOpenConcept(null)}
+          getToken={getToken}
         />
       )}
 

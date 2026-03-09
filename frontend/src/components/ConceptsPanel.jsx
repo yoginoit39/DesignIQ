@@ -31,7 +31,7 @@ function formatDesignContext(design) {
   return `Current design: ${design.title} — ${design.description}`
 }
 
-export default function ConceptsPanel({ design, openConcept, onConceptHandled }) {
+export default function ConceptsPanel({ design, openConcept, onConceptHandled, getToken }) {
   const [search, setSearch] = useState('')
   const [activeConcept, setActiveConcept] = useState(null)
   const [content, setContent] = useState('')
@@ -56,9 +56,13 @@ export default function ConceptsPanel({ design, openConcept, onConceptHandled })
     setContent('')
     setLoading(true)
     try {
+      const token = await getToken()
       const res = await fetch(`${API_URL}/concept`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           concept,
           diagram_context: formatDesignContext(design),

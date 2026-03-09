@@ -1,13 +1,22 @@
 import os
 import json
-from fastapi import FastAPI, HTTPException
+import firebase_admin
+from firebase_admin import credentials, auth as firebase_auth
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Initialize Firebase Admin SDK from env var (set FIREBASE_SERVICE_ACCOUNT_JSON in .env)
+_service_account_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+if _service_account_json:
+    _cred = credentials.Certificate(json.loads(_service_account_json))
+    firebase_admin.initialize_app(_cred)
 
 app = FastAPI()
 
@@ -19,6 +28,17 @@ app.add_middleware(
 )
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+_security = HTTPBearer()
+
+
+async def verify_token(
+    creds: HTTPAuthorizationCredentials = Depends(_security),
+) -> dict:
+    try:
+        return firebase_auth.verify_id_token(creds.credentials)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 DESIGN_SYSTEM_PROMPT = """You are a world-class system design expert helping candidates prepare for technical interviews at top companies like Google, Meta, Amazon, and Netflix.
 
@@ -170,7 +190,7 @@ class RefineRequest(BaseModel):
 
 
 @app.post("/generate-design")
-async def generate_design(request: DesignRequest):
+async def generate_design(request: DesignRequest, _user: dict = Depends(verify_token)):
     try:
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -199,7 +219,7 @@ async def generate_design(request: DesignRequest):
 
 
 @app.post("/refine-design")
-async def refine_design(request: RefineRequest):
+async def refine_design(request: RefineRequest, _user: dict = Depends(verify_token)):
     try:
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -227,7 +247,7 @@ async def refine_design(request: RefineRequest):
 
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, _user: dict = Depends(verify_token)):
     system_prompt = CHAT_SYSTEM_PROMPT.format(
         diagram_context=request.diagram_context
     )
@@ -260,7 +280,7 @@ async def chat(request: ChatRequest):
 
 
 @app.post("/drill")
-async def drill(request: DrillRequest):
+async def drill(request: DrillRequest, _user: dict = Depends(verify_token)):
     system_prompt = DRILL_SYSTEM_PROMPT.format(
         diagram_context=request.diagram_context
     )
@@ -294,7 +314,7 @@ async def drill(request: DrillRequest):
 
 
 @app.post("/concept")
-async def concept(request: ConceptRequest):
+async def concept(request: ConceptRequest, _user: dict = Depends(verify_token)):
     context_section = ""
     if request.diagram_context.strip():
         context_section = f"Context: Relate this concept to the candidate's current design where relevant: {request.diagram_context}"

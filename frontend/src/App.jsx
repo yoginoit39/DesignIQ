@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
+import { useAuth } from './AuthContext'
+import LoginPage from './LoginPage'
 import PromptBar from './components/PromptBar'
 import DiagramPanel from './components/DiagramPanel'
 import ChatPanel from './components/ChatPanel'
@@ -9,6 +11,7 @@ const MIN_CHAT_WIDTH = 280
 const MAX_CHAT_WIDTH = 600
 
 export default function App() {
+  const { user, loading: authLoading, signOut } = useAuth()
   const [design, setDesign] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -50,6 +53,12 @@ export default function App() {
     setChatWidth(DEFAULT_CHAT_WIDTH)
   }, [])
 
+  // Returns a fresh Firebase ID token for every request
+  const getToken = useCallback(async () => {
+    if (!user) throw new Error('Not authenticated')
+    return user.getIdToken()
+  }, [user])
+
   const handleGenerate = async (prompt) => {
     setLoading(true)
     setError(null)
@@ -57,9 +66,13 @@ export default function App() {
     setSelectedNode(null)
 
     try {
+      const token = await getToken()
       const res = await fetch(`${API_URL}/generate-design`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ prompt }),
       })
 
@@ -76,6 +89,30 @@ export default function App() {
       setLoading(false)
     }
   }
+
+  // Show blank screen while Firebase resolves session (< 1 second)
+  if (authLoading) {
+    return (
+      <div style={{
+        height: '100vh',
+        background: '#0a0a0f',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: '#00d4ff',
+          boxShadow: '0 0 12px rgba(0,212,255,0.6)',
+          animation: 'blink 0.9s ease-in-out infinite',
+        }} />
+      </div>
+    )
+  }
+
+  if (!user) return <LoginPage />
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0a0a0f' }}>
@@ -152,6 +189,35 @@ export default function App() {
               </span>
             </div>
           )}
+
+          {/* Signed-in user + sign out */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {user.photoURL && (
+              <img
+                src={user.photoURL}
+                alt="avatar"
+                style={{ width: 24, height: 24, borderRadius: '50%', border: '1px solid rgba(0,212,255,0.2)' }}
+              />
+            )}
+            <button
+              onClick={signOut}
+              style={{
+                fontSize: 11,
+                color: '#3d4466',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif",
+                padding: 0,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#8892b0'}
+              onMouseLeave={e => e.currentTarget.style.color = '#3d4466'}
+            >
+              Sign out
+            </button>
+          </div>
+
           <a
             href="https://groq.com"
             target="_blank"
@@ -224,6 +290,7 @@ export default function App() {
           design={design}
           onDiagramUpdate={setDesign}
           width={chatWidth}
+          getToken={getToken}
         />
       </div>
     </div>
